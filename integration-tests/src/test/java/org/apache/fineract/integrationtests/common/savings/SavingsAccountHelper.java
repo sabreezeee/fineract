@@ -630,6 +630,11 @@ public class SavingsAccountHelper {
         return response;
     }
 
+    public ArrayList getSavingsAccountWithBirthday(final Integer birthdayMonth, final Integer birthdayDay) {
+        final String URL = SAVINGS_ACCOUNT_URL + "?birthdayMonth=" + birthdayMonth + "&" + "birthdayDay=" + birthdayDay + "&" + Utils.TENANT_IDENTIFIER;
+        return Utils.performServerGet(requestSpec, responseSpec, URL, "");
+    }
+
     public Object getSavingsAccountDetail(final Integer savingsID, final String jsonAttribute) {
         final String URL = SAVINGS_ACCOUNT_URL + "/" + savingsID + "?associations=all&" + Utils.TENANT_IDENTIFIER;
         return Utils.performServerGet(requestSpec, responseSpec, URL, jsonAttribute);

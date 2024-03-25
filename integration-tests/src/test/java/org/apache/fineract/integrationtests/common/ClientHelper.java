@@ -330,6 +330,7 @@ public class ClientHelper extends IntegrationTest {
         map.put("legalFormId", legalFormId);
         map.put("firstname", Utils.randomStringGenerator("Client_FirstName_", 5));
         map.put("lastname", Utils.randomStringGenerator("Client_LastName_", 4));
+        map.put("dateOfBirth", "08 April 1998");
         if (externalId != null) {
             map.put("externalId", externalId);
         }

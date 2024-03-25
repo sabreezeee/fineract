@@ -41,10 +41,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.time.LocalDate;
+import java.util.*;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.commands.domain.CommandWrapper;
@@ -63,6 +62,7 @@ import org.apache.fineract.infrastructure.core.serialization.DefaultToApiJsonSer
 import org.apache.fineract.infrastructure.core.service.Page;
 import org.apache.fineract.infrastructure.core.service.SearchParameters;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
+import org.apache.fineract.portfolio.client.data.ClientData;
 import org.apache.fineract.portfolio.savings.DepositAccountType;
 import org.apache.fineract.portfolio.savings.SavingsApiConstants;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountChargeData;
@@ -122,21 +122,41 @@ public class SavingsAccountsApiResource {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsAccountsApiResourceSwagger.GetSavingsAccountsResponse.class))) })
     public String retrieveAll(@Context final UriInfo uriInfo,
-            @QueryParam("sqlSearch") @Parameter(description = "sqlSearch") final String sqlSearch,
-            @QueryParam("externalId") @Parameter(description = "externalId") final String externalId,
-            // @QueryParam("underHierarchy") final String hierarchy,
-            @QueryParam("offset") @Parameter(description = "offset") final Integer offset,
-            @QueryParam("limit") @Parameter(description = "limit") final Integer limit,
-            @QueryParam("orderBy") @Parameter(description = "orderBy") final String orderBy,
-            @QueryParam("sortOrder") @Parameter(description = "sortOrder") final String sortOrder) {
+                              @QueryParam("sqlSearch") @Parameter(description = "sqlSearch") final String sqlSearch,
+                              @QueryParam("externalId") @Parameter(description = "externalId") final String externalId,
+                              // @QueryParam("underHierarchy") final String hierarchy,
+                              @QueryParam("offset") @Parameter(description = "offset") final Integer offset,
+                              @QueryParam("limit") @Parameter(description = "limit") final Integer limit,
+                              @QueryParam("orderBy") @Parameter(description = "orderBy") final String orderBy,
+                              @QueryParam("sortOrder") @Parameter(description = "sortOrder") final String sortOrder,
+                              @QueryParam("birthdayMonth") @Parameter(description = "birthdayMonth") final Integer birthdayMonth,
+                              @QueryParam("birthdayDay") @Parameter(description = "birthdayDay") final Integer birthdayDay) {
 
         context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME);
 
         final SearchParameters searchParameters = SearchParameters.forSavings(sqlSearch, externalId, offset, limit, orderBy, sortOrder);
 
         final Page<SavingsAccountData> products = savingsAccountReadPlatformService.retrieveAll(searchParameters);
-
         final ApiRequestJsonSerializationSettings settings = apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+
+        boolean shouldFilterBybirthdayMonth = birthdayMonth != null;
+        boolean shouldFilterBybirthdayDay = birthdayDay != null;
+
+        if (shouldFilterBybirthdayMonth && shouldFilterBybirthdayDay) {
+            List<SavingsAccountData> savingsAccountDataList = products.getPageItems();
+            List<SavingsAccountData> filteredSavingsAccountDataListByBirthday = new ArrayList<>();
+            for (SavingsAccountData savingsAccountData: savingsAccountDataList) {
+                ClientData clientData = savingsAccountData.getClientData();
+                LocalDate dateOfBirth = clientData.getDateOfBirth();
+                if (dateOfBirth.getDayOfMonth() == birthdayDay && dateOfBirth.getMonthValue() == birthdayMonth) {
+                    filteredSavingsAccountDataListByBirthday.add(savingsAccountData);
+                }
+            }
+            Page<SavingsAccountData> filteredSavingsAccountDataPageByBirthday = new Page<>(filteredSavingsAccountDataListByBirthday, filteredSavingsAccountDataListByBirthday.size());
+            return toApiJsonSerializer.serialize(settings, filteredSavingsAccountDataPageByBirthday, SavingsApiSetConstants.SAVINGS_ACCOUNT_RESPONSE_DATA_PARAMETERS);
+
+        }
+
         return toApiJsonSerializer.serialize(settings, products, SavingsApiSetConstants.SAVINGS_ACCOUNT_RESPONSE_DATA_PARAMETERS);
     }
 
